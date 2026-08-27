@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Palette anchored in the flag: deep bottle green + a single disciplined
+       red accent reserved for alerts, severity and destructive actions —
+       never used decoratively. Background is a cool, slightly green-grey
+       neutral rather than warm cream, to read as civic/official. */
+    --background: 150 20% 98%;
+    --foreground: 160 30% 8%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 160 30% 8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 160 30% 8%;
+
+    --primary: 160 100% 21%;           /* #006A4E — BD flag green */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 150 15% 94%;
+    --secondary-foreground: 160 30% 12%;
+
+    --muted: 150 12% 94%;
+    --muted-foreground: 155 8% 40%;
+
+    --accent: 150 20% 92%;
+    --accent-foreground: 160 30% 12%;
+
+    --destructive: 351 89% 57%;        /* #F42A41 — BD flag red */
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 60% 32%;
+    --success-foreground: 0 0% 100%;
+
+    --border: 150 14% 88%;
+    --input: 150 14% 88%;
+    --ring: 160 100% 21%;
+
+    --radius: 0.65rem;
+  }
+
+  .dark {
+    --background: 160 30% 6%;
+    --foreground: 150 15% 95%;
+    --card: 160 25% 9%;
+    --card-foreground: 150 15% 95%;
+    --popover: 160 25% 9%;
+    --popover-foreground: 150 15% 95%;
+    --primary: 152 65% 42%;
+    --primary-foreground: 160 30% 6%;
+    --secondary: 160 18% 14%;
+    --secondary-foreground: 150 15% 95%;
+    --muted: 160 18% 14%;
+    --muted-foreground: 150 8% 65%;
+    --accent: 160 18% 16%;
+    --accent-foreground: 150 15% 95%;
+    --destructive: 351 80% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 55% 45%;
+    --success-foreground: 160 30% 6%;
+    --border: 160 15% 18%;
+    --input: 160 15% 18%;
+    --ring: 152 65% 42%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+@layer utilities {
+  .font-bangla {
+    font-family: var(--font-noto-bengali), "Noto Sans Bengali", sans-serif;
+  }
+
+  /* Subtle three-bar signal motif used as a recurring structural device,
+     since the subject (traffic discipline) is literally about signals. */
+  .signal-rule {
+    background: linear-gradient(
+      to right,
+      hsl(var(--destructive)) 0 8%,
+      #f6c445 8% 16%,
+      hsl(var(--primary)) 16% 24%,
+      transparent 24%
+    );
+    height: 4px;
+    border-radius: 999px;
+  }
+}
