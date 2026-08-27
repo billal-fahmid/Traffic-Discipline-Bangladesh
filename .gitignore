@@ -12,10 +12,9 @@ build
 # testing
 coverage
 
-# env — never commit real secrets (use .env.example as the template)
-.env
-.env.local
-.env.*.local
+# env — never commit real secrets. Only .env.example is tracked.
+.env*
+!.env.example
 
 # misc
 *.log
