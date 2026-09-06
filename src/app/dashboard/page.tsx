@@ -72,25 +72,27 @@ export default async function DashboardPage() {
             ) : (
               <div className="space-y-3">
                 {reports.map((r: any) => (
-                  <Card key={r.id}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{r.report_code}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {r.violation_categories?.name_en ?? "—"} · {new Date(r.created_at).toLocaleDateString()}
-                          </p>
+                  <Link key={r.id} href={`/dashboard/reports/${r.id}`} className="block">
+                    <Card className="transition-colors hover:border-primary/50 hover:bg-primary/[0.02]">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{r.report_code}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {r.violation_categories?.name_en ?? "—"} · {new Date(r.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <Badge variant="secondary">{CITIZEN_STAGE_LABEL[toCitizenStage(r.status as ReportStatus)]}</Badge>
                         </div>
-                        <Badge variant="secondary">{CITIZEN_STAGE_LABEL[toCitizenStage(r.status as ReportStatus)]}</Badge>
-                      </div>
-                      {r.resolution_summary && (
-                        <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Action Taken</p>
-                          <p className="mt-1 whitespace-pre-wrap text-sm">{r.resolution_summary}</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                        {r.resolution_summary && (
+                          <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-primary">Action Taken</p>
+                            <p className="mt-1 whitespace-pre-wrap text-sm">{r.resolution_summary}</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Link>
                 ))}
               </div>
             )}

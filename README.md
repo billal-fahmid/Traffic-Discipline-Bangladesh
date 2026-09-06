@@ -197,6 +197,7 @@ for it to finish, then move to the next — don't paste multiple files into one 
 12. supabase/006_anonymous_submission_fix.sql
 13. supabase/007_profile_self_service.sql
 14. supabase/008_resolution_summary.sql
+15. supabase/009_citizen_edit_window.sql
 ```
 
 **Why `002a`/`005a` have to run by themselves:** each adds new values to a Postgres enum
@@ -319,6 +320,7 @@ supabase/
   006_anonymous_submission_fix.sql    M4 — SECURITY DEFINER fixes for anonymous report/evidence insert
   007_profile_self_service.sql        M4 — profile "address" field + public "avatars" storage bucket
   008_resolution_summary.sql          M4 — citizen-facing "what action was taken" field
+  009_citizen_edit_window.sql         M4 — citizen can self-edit a report within 10 min of filing
 docs/
   SECURITY_AUDIT.md                   Findings (incl. a real fix), reviewed items, live-test matrix
   PRODUCTION_READINESS.md             Accessibility / mobile / performance — done vs. needs live testing

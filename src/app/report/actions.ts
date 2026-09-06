@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient, createPublicClient } from "@/lib/supabase/server";
 import { checkRateLimit, hashIp } from "@/lib/rate-limit";
@@ -210,4 +211,73 @@ export async function attachEvidence(
     return { ok: true as const, warning: "Some files were skipped for failing validation." };
   }
   return { ok: true as const };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Self-edit — a registered citizen correcting their own report within
+// the 10-minute window. The actual window/ownership check is enforced
+// inside update_own_report (SECURITY DEFINER); this is just input
+// validation plus a clean error message.
+// ─────────────────────────────────────────────────────────────────────
+
+const updateOwnReportSchema = z.object({
+  reportId: z.string().uuid(),
+  categoryId: z.string().uuid(),
+  isIllegalStoppage: z.boolean().default(false),
+  routeName: z.string().max(200).optional(),
+  stoppageDuration: z.string().max(200).optional(),
+  latitude: z.number().min(-90).max(90).nullable(),
+  longitude: z.number().min(-180).max(180).nullable(),
+  locationLabel: z.string().max(300).optional(),
+  district: z.string().max(100).optional(),
+  thana: z.string().max(100).optional(),
+  vehicleType: z.string().max(100).optional(),
+  vehicleRegistration: z.string().max(50).optional(),
+  vehicleColor: z.string().max(50).optional(),
+  vehicleOwnerVisibleName: z.string().max(150).optional(),
+  description: z.string().max(2000).optional(),
+});
+
+export async function updateOwnReport(
+  input: z.infer<typeof updateOwnReportSchema>
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const parsed = updateOwnReportSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Some fields are invalid. Please review and try again." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "You must be signed in to edit this report." };
+
+  const { error } = await supabase.rpc("update_own_report", {
+    p_report_id: parsed.data.reportId,
+    p_category_id: parsed.data.categoryId,
+    p_is_illegal_stoppage: parsed.data.isIllegalStoppage,
+    p_route_name: parsed.data.routeName || null,
+    p_stoppage_duration: parsed.data.stoppageDuration || null,
+    p_latitude: parsed.data.latitude,
+    p_longitude: parsed.data.longitude,
+    p_location_label: parsed.data.locationLabel || null,
+    p_district: parsed.data.district || null,
+    p_thana: parsed.data.thana || null,
+    p_vehicle_type: parsed.data.vehicleType || null,
+    p_vehicle_registration: parsed.data.vehicleRegistration || null,
+    p_vehicle_color: parsed.data.vehicleColor || null,
+    p_vehicle_owner_visible_name: parsed.data.vehicleOwnerVisibleName || null,
+    p_description: parsed.data.description || null,
+  });
+
+  if (error) {
+    const message = error.message.includes("10-minute")
+      ? "The 10-minute edit window has passed."
+      : error.message.includes("only edit your own")
+        ? "You can only edit your own report."
+        : "Couldn't update the report.";
+    return { ok: false, error: message };
+  }
+
+  revalidatePath(`/dashboard/reports/${parsed.data.reportId}`);
+  revalidatePath("/dashboard");
+  return { ok: true };
 }
