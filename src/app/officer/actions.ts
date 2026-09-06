@@ -94,6 +94,10 @@ const statusSchema = z.object({
   reportId: z.string().uuid(),
   newStatus: z.custom<ReportStatus>(),
   note: z.string().max(2000).optional(),
+  // Citizen-facing "what was actually done about this" — required when moving
+  // into action_taken (see ActionTakenForm in case-detail-client.tsx), but
+  // accepted here on any transition so an admin can correct it in passing.
+  resolutionSummary: z.string().min(5).max(2000).optional(),
   force: z.boolean().optional(), // admin-only escape hatch for out-of-band corrections
 });
 
@@ -127,10 +131,16 @@ export async function changeReportStatus(input: z.infer<typeof statusSchema>): P
   if (parsed.data.force && !isAdmin) {
     return { ok: false, error: "Only an admin can force a status change." };
   }
+  if (parsed.data.newStatus === "action_taken" && !parsed.data.resolutionSummary) {
+    return { ok: false, error: "Describe what action was taken before moving to this status." };
+  }
 
   const { error: updateError } = await supabase
     .from("reports")
-    .update({ status: parsed.data.newStatus })
+    .update({
+      status: parsed.data.newStatus,
+      ...(parsed.data.resolutionSummary ? { resolution_summary: parsed.data.resolutionSummary } : {}),
+    })
     .eq("id", parsed.data.reportId);
   if (updateError) return { ok: false, error: "Couldn't update the status." };
 
@@ -139,6 +149,13 @@ export async function changeReportStatus(input: z.infer<typeof statusSchema>): P
       report_id: parsed.data.reportId,
       author_id: auth.userId,
       note: parsed.data.note,
+    });
+  }
+  if (parsed.data.resolutionSummary) {
+    await supabase.from("report_notes").insert({
+      report_id: parsed.data.reportId,
+      author_id: auth.userId,
+      note: `Action taken: ${parsed.data.resolutionSummary}`,
     });
   }
 
@@ -294,6 +311,54 @@ export async function addNote(input: z.infer<typeof noteSchema>): Promise<Action
   await logAudit(supabase, {
     actorId: auth.userId,
     action: "report.note_added",
+    entityType: "report",
+    entityId: parsed.data.reportId,
+  });
+
+  revalidatePath(`/officer/reports/${parsed.data.reportId}`);
+  return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Resolution summary — the citizen-facing "what was actually done"
+// record. Set (required) when moving to action_taken via
+// changeReportStatus above; this lets the assigned officer or an admin
+// correct it afterward without forcing another status transition.
+// ─────────────────────────────────────────────────────────────────────
+
+const resolutionSchema = z.object({
+  reportId: z.string().uuid(),
+  resolutionSummary: z.string().min(5).max(2000),
+});
+
+export async function updateResolutionSummary(input: z.infer<typeof resolutionSchema>): Promise<ActionResult> {
+  const parsed = resolutionSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Describe what action was taken (at least 5 characters)." };
+
+  const { supabase, auth, error } = await guard();
+  if (!auth) return { ok: false, error: error! };
+
+  const isAdmin = ADMIN_ROLES.includes(auth.role);
+
+  const { data: report } = await supabase
+    .from("reports")
+    .select("officer_id")
+    .eq("id", parsed.data.reportId)
+    .single();
+  if (!report) return { ok: false, error: "Report not found." };
+  if (!isAdmin && report.officer_id !== auth.userId) {
+    return { ok: false, error: "Only the assigned officer (or an admin) can edit this." };
+  }
+
+  const { error: updateError } = await supabase
+    .from("reports")
+    .update({ resolution_summary: parsed.data.resolutionSummary })
+    .eq("id", parsed.data.reportId);
+  if (updateError) return { ok: false, error: "Couldn't save this." };
+
+  await logAudit(supabase, {
+    actorId: auth.userId,
+    action: "report.resolution_update",
     entityType: "report",
     entityId: parsed.data.reportId,
   });

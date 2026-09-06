@@ -10,6 +10,10 @@ export const metadata: Metadata = {
   title: "Traffic Discipline Bangladesh — Report Traffic Violations",
   description:
     "Report traffic violations across Bangladesh — anonymously or as a registered citizen. Upload photo/video evidence, pin the GPS location, and track your report to resolution.",
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/apple-touch-icon.svg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

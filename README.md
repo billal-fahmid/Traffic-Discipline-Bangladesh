@@ -195,6 +195,8 @@ for it to finish, then move to the next — don't paste multiple files into one 
 10. supabase/005_advanced_features.sql
 11. supabase/005_advanced_features_rls.sql
 12. supabase/006_anonymous_submission_fix.sql
+13. supabase/007_profile_self_service.sql
+14. supabase/008_resolution_summary.sql
 ```
 
 **Why `002a`/`005a` have to run by themselves:** each adds new values to a Postgres enum
@@ -314,6 +316,9 @@ supabase/
   005a_notification_channel_enum.sql  M4 — adds 'push' to notification_channel (run alone)
   005_advanced_features.sql           M4 — duplicate detection, quality scoring, suspicious-activity flags, push subs
   005_advanced_features_rls.sql       M4 — RLS for duplicate suggestions + push subscriptions
+  006_anonymous_submission_fix.sql    M4 — SECURITY DEFINER fixes for anonymous report/evidence insert
+  007_profile_self_service.sql        M4 — profile "address" field + public "avatars" storage bucket
+  008_resolution_summary.sql          M4 — citizen-facing "what action was taken" field
 docs/
   SECURITY_AUDIT.md                   Findings (incl. a real fix), reviewed items, live-test matrix
   PRODUCTION_READINESS.md             Accessibility / mobile / performance — done vs. needs live testing

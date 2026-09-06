@@ -22,6 +22,7 @@ export type TrackResult =
         location_label: string | null;
         created_at: string;
         updated_at: string;
+        resolution_summary: string | null;
       };
     }
   | { ok: false; error: string };

@@ -22,7 +22,7 @@ export default async function DashboardPage() {
     supabase.from("profiles").select("*").eq("id", user!.id).single(),
     supabase
       .from("reports")
-      .select("id, report_code, status, created_at, vehicle_type, violation_categories!reports_category_id_fkey(name_en)")
+      .select("id, report_code, status, created_at, vehicle_type, resolution_summary, violation_categories!reports_category_id_fkey(name_en)")
       .eq("reporter_id", user!.id)
       .order("created_at", { ascending: false }),
     supabase
@@ -73,14 +73,22 @@ export default async function DashboardPage() {
               <div className="space-y-3">
                 {reports.map((r: any) => (
                   <Card key={r.id}>
-                    <CardContent className="flex items-center justify-between p-4">
-                      <div>
-                        <p className="font-medium">{r.report_code}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {r.violation_categories?.name_en ?? "—"} · {new Date(r.created_at).toLocaleDateString()}
-                        </p>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{r.report_code}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {r.violation_categories?.name_en ?? "—"} · {new Date(r.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Badge variant="secondary">{CITIZEN_STAGE_LABEL[toCitizenStage(r.status as ReportStatus)]}</Badge>
                       </div>
-                      <Badge variant="secondary">{CITIZEN_STAGE_LABEL[toCitizenStage(r.status as ReportStatus)]}</Badge>
+                      {r.resolution_summary && (
+                        <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Action Taken</p>
+                          <p className="mt-1 whitespace-pre-wrap text-sm">{r.resolution_summary}</p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}

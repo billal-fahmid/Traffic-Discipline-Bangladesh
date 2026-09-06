@@ -13,6 +13,7 @@ import { StatusBadge, PriorityBadge } from "@/components/case/badges";
 import {
   STATUS_TRANSITIONS,
   REPORT_STATUS_LABEL,
+  REPORT_STATUS_ORDER,
   PRIORITY_LABEL,
   type ReportStatus,
   type ReportPriority,
@@ -32,11 +33,12 @@ import {
   summarizeCaseWithAI,
   suggestCategoryWithAI,
   recategorizeReport,
+  updateResolutionSummary,
 } from "@/app/officer/actions";
 import {
   CheckCircle2, XCircle, Copy, FileText, MapPin, Car, Clock, User,
   ShieldAlert, Loader2, ImageIcon, FileVideo, ExternalLink, UserPlus, UserMinus,
-  Sparkles, GaugeCircle, Layers,
+  Sparkles, GaugeCircle, Layers, Circle, ChevronRight,
 } from "lucide-react";
 
 const LeafletMap = dynamic(() => import("@/components/map/leaflet-map"), { ssr: false });
@@ -82,6 +84,10 @@ export function CaseDetailClient({
     <div className="mx-auto max-w-4xl space-y-6">
       <Header report={report} category={category} />
       <AssignmentPanel report={report} officers={officers} isAdmin={isAdmin} isMine={isMine} currentUserId={currentUserId} />
+      {(report.resolution_summary ||
+        ((isMine || isAdmin) && ["action_recommended", "action_taken", "closed"].includes(report.status))) && (
+        <ResolutionCard report={report} canEdit={isMine || isAdmin} />
+      )}
       {duplicates.length > 0 && !isTerminal && <DuplicatesCard duplicates={duplicates} />}
       {!isTerminal && (isMine || isAdmin) && <ActionsPanel report={report} isAdmin={isAdmin} />}
       {(isMine || isAdmin) && <AiAssistCard report={report} category={category} allCategories={allCategories} />}
@@ -118,6 +124,76 @@ function Header({ report, category }: { report: any; category: any }) {
         <Badge variant="destructive">Duplicate</Badge>
       )}
     </div>
+  );
+}
+
+/** The citizen-facing "what was actually done about this" record — set (required)
+ *  when a case moves to action_taken, editable afterward by the assigned officer
+ *  or an admin. Also readable by the reporter directly off the reports row (RLS
+ *  "reports: citizen reads own") and via the anonymous tracker RPC. */
+function ResolutionCard({ report, canEdit }: { report: any; canEdit: boolean }) {
+  const [pending, startTransition] = useTransition();
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(report.resolution_summary ?? "");
+  const [msg, setMsg] = useState<{ text: string; tone: "error" | "success" } | null>(null);
+
+  function save() {
+    startTransition(async () => {
+      const res = await updateResolutionSummary({ reportId: report.id, resolutionSummary: text });
+      if (res.ok) {
+        setEditing(false);
+        setMsg(null);
+      } else {
+        setMsg({ text: res.error, tone: "error" });
+      }
+    });
+  }
+
+  return (
+    <Card className="border-primary/30 bg-primary/[0.03]">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <CheckCircle2 className="h-4 w-4 text-primary" /> Resolution — Action Taken
+        </CardTitle>
+        {canEdit && !editing && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setText(report.resolution_summary ?? "");
+              setEditing(true);
+            }}
+          >
+            {report.resolution_summary ? "Edit" : "Add"}
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent className="p-5 pt-0">
+        {editing ? (
+          <div className="space-y-2">
+            <Textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={3}
+              placeholder="e.g. Fine of BDT 2,000 issued under section 4.2; vehicle owner warned."
+            />
+            <div className="flex gap-2">
+              <Button size="sm" onClick={save} disabled={pending || text.trim().length < 5}>
+                {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Save
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setEditing(false)} disabled={pending}>
+                Cancel
+              </Button>
+            </div>
+            {msg && <Msg {...msg} />}
+          </div>
+        ) : report.resolution_summary ? (
+          <p className="whitespace-pre-wrap text-sm">{report.resolution_summary}</p>
+        ) : (
+          <p className="text-sm text-muted-foreground">No resolution recorded yet.</p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -322,6 +398,9 @@ function ActionsPanel({ report, isAdmin }: { report: any; isAdmin: boolean }) {
   const [spamReason, setSpamReason] = useState("");
   const [nextStatus, setNextStatus] = useState<string>("");
   const [priority, setPriorityValue] = useState<ReportPriority>(report.priority);
+  const [showActionTaken, setShowActionTaken] = useState(false);
+  const [actionTakenText, setActionTakenText] = useState("");
+  const [actionTakenForce, setActionTakenForce] = useState(false);
 
   const allowedNext = STATUS_TRANSITIONS[report.status as ReportStatus] ?? [];
 
@@ -332,11 +411,42 @@ function ActionsPanel({ report, isAdmin }: { report: any; isAdmin: boolean }) {
     });
   }
 
+  function advance(status: ReportStatus, force: boolean) {
+    // Moving into action_taken always requires the citizen-facing resolution
+    // text first — collect it here instead of transitioning immediately.
+    if (status === "action_taken") {
+      setActionTakenForce(force);
+      setActionTakenText(report.resolution_summary ?? "");
+      setShowActionTaken(true);
+      return;
+    }
+    run(() => changeReportStatus({ reportId: report.id, newStatus: status, force }), `Status updated to ${REPORT_STATUS_LABEL[status]}.`);
+  }
+
+  function confirmActionTaken() {
+    startTransition(async () => {
+      const res = await changeReportStatus({
+        reportId: report.id,
+        newStatus: "action_taken",
+        force: actionTakenForce,
+        resolutionSummary: actionTakenText,
+      });
+      if (res.ok) {
+        setShowActionTaken(false);
+        setMsg({ text: "Action recorded — status updated to Action Taken.", tone: "success" });
+      } else {
+        setMsg({ text: res.error!, tone: "error" });
+      }
+    });
+  }
+
   return (
     <Card>
       <CardHeader><CardTitle className="text-base">Case Actions</CardTitle></CardHeader>
       <CardContent className="space-y-4 p-5 pt-0">
-        <div className="flex flex-wrap gap-2">
+        <StatusStepper status={report.status} allowedNext={allowedNext} isAdmin={isAdmin} pending={pending} onAdvance={advance} />
+
+        <div className="flex flex-wrap gap-2 border-t border-border pt-4">
           {report.status === "evidence_verification" && (
             <Button size="sm" onClick={() => run(() => verifyReport(report.id), "Report verified.")} disabled={pending}>
               <CheckCircle2 className="h-4 w-4" /> Verify
@@ -352,6 +462,27 @@ function ActionsPanel({ report, isAdmin }: { report: any; isAdmin: boolean }) {
             <ShieldAlert className="h-4 w-4" /> Flag as Spam
           </Button>
         </div>
+
+        {showActionTaken && (
+          <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-4">
+            <Label htmlFor="actionTakenText">What action was taken? (required — shown to the reporter)</Label>
+            <Textarea
+              id="actionTakenText"
+              value={actionTakenText}
+              onChange={(e) => setActionTakenText(e.target.value)}
+              rows={3}
+              placeholder="e.g. Fine of BDT 2,000 issued under section 4.2; vehicle owner warned."
+            />
+            <div className="flex gap-2">
+              <Button size="sm" onClick={confirmActionTaken} disabled={pending || actionTakenText.trim().length < 5}>
+                Confirm & Advance
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setShowActionTaken(false)} disabled={pending}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
 
         {showReject && (
           <div className="space-y-2 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
@@ -409,10 +540,7 @@ function ActionsPanel({ report, isAdmin }: { report: any; isAdmin: boolean }) {
               </Select>
               <Button
                 size="sm"
-                onClick={() => run(
-                  () => changeReportStatus({ reportId: report.id, newStatus: nextStatus as ReportStatus, force: isAdmin && !allowedNext.includes(nextStatus as ReportStatus) }),
-                  "Status updated."
-                )}
+                onClick={() => advance(nextStatus as ReportStatus, isAdmin && !allowedNext.includes(nextStatus as ReportStatus))}
                 disabled={pending || !nextStatus}
               >
                 Update
@@ -443,6 +571,59 @@ function ActionsPanel({ report, isAdmin }: { report: any; isAdmin: boolean }) {
         {msg && <Msg {...msg} />}
       </CardContent>
     </Card>
+  );
+}
+
+/** Clickable progress stepper — the officer/admin equivalent of the citizen tracker on
+ *  /track. Clicking a future step calls changeReportStatus directly: the immediate next
+ *  step for anyone assigned, or (for admins) any later step as a force-transition. */
+function StatusStepper({
+  status, allowedNext, isAdmin, pending, onAdvance,
+}: {
+  status: ReportStatus;
+  allowedNext: ReportStatus[];
+  isAdmin: boolean;
+  pending: boolean;
+  onAdvance: (status: ReportStatus, force: boolean) => void;
+}) {
+  if (!REPORT_STATUS_ORDER.includes(status)) return null;
+
+  const currentIndex = REPORT_STATUS_ORDER.indexOf(status);
+  const forwardNext = allowedNext.find((s) => REPORT_STATUS_ORDER.includes(s));
+
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {REPORT_STATUS_ORDER.map((s, i) => {
+        const isDone = i < currentIndex;
+        const isCurrent = i === currentIndex;
+        const isImmediateNext = s === forwardNext;
+        const clickable = !pending && (isImmediateNext || (isAdmin && i > currentIndex));
+
+        return (
+          <div key={s} className="flex items-center gap-1">
+            <button
+              type="button"
+              disabled={!clickable}
+              onClick={() => clickable && onAdvance(s, !isImmediateNext)}
+              title={clickable ? `Move to ${REPORT_STATUS_LABEL[s]}` : REPORT_STATUS_LABEL[s]}
+              className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                isCurrent
+                  ? "border-primary bg-primary/10 text-primary"
+                  : isDone
+                  ? "border-success/40 bg-success/5 text-success"
+                  : clickable
+                  ? "border-primary/40 text-foreground hover:bg-primary/5"
+                  : "border-border text-muted-foreground/60"
+              } ${clickable ? "cursor-pointer" : "cursor-default"}`}
+            >
+              {isDone ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Circle className="h-3.5 w-3.5" />}
+              {REPORT_STATUS_LABEL[s]}
+            </button>
+            {i < REPORT_STATUS_ORDER.length - 1 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40" />}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

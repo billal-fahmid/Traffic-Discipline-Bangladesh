@@ -138,6 +138,7 @@ export interface Profile {
   nid_number: string | null;
   avatar_url: string | null;
   district: string | null;
+  address: string | null;
   is_active: boolean;
   created_at: string;
 }
@@ -177,6 +178,7 @@ export interface ReportRecord {
   duplicate_of_report_id: string | null;
   rejection_reason: string | null;
   officer_notes: string | null;
+  resolution_summary: string | null;
   reporter_id: string | null;
   quality_score: number;
   ai_suggested_category_id: string | null;
