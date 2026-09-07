@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { ReportDraft, ReportMode } from "@/lib/types";
 import type { ViolationCategory } from "@/lib/types";
+import { useLanguage } from "@/lib/i18n/language-context";
 import {
   ParkingCircleOff, MoveLeft, TrafficCone, Zap, ShieldAlert, PackagePlus,
   Bus, FileX, Wrench, MoreHorizontal, EyeOff, UserCheck,
@@ -35,18 +36,17 @@ export function StepMode({
   onChange: (mode: ReportMode) => void;
   isAuthenticated: boolean;
 }) {
+  const { t } = useLanguage();
+  const r = t.report;
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <button type="button" onClick={() => onChange("anonymous")} className="text-left">
         <Card className={cn("h-full transition-all hover:border-primary/60", value === "anonymous" && "border-primary ring-2 ring-primary/20")}>
           <CardContent className="p-6">
             <EyeOff className="h-8 w-8 text-primary" />
-            <p className="mt-4 font-display text-lg font-bold">Report Anonymously</p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              No name, phone, email, or NID collected — ever. You'll still get a report code and
-              tracking token to follow up.
-            </p>
-            <Badge variant="secondary" className="mt-4">Fastest · fully private</Badge>
+            <p className="mt-4 font-display text-lg font-bold">{r.modeAnonymousTitle}</p>
+            <p className="mt-2 text-sm text-muted-foreground">{r.modeAnonymousBody}</p>
+            <Badge variant="secondary" className="mt-4">{r.modeAnonymousBadge}</Badge>
           </CardContent>
         </Card>
       </button>
@@ -60,13 +60,11 @@ export function StepMode({
         <Card className={cn("h-full transition-all hover:border-primary/60", value === "registered" && "border-primary ring-2 ring-primary/20")}>
           <CardContent className="p-6">
             <UserCheck className="h-8 w-8 text-primary" />
-            <p className="mt-4 font-display text-lg font-bold">Report as a Registered User</p>
+            <p className="mt-4 font-display text-lg font-bold">{r.modeRegisteredTitle}</p>
             <p className="mt-2 text-sm text-muted-foreground">
-              {isAuthenticated
-                ? "Signed in — this report will appear in your dashboard with status updates."
-                : "You'll be asked to sign in first. Track every report you've filed from your dashboard."}
+              {isAuthenticated ? r.modeRegisteredBodySignedIn : r.modeRegisteredBodySignedOut}
             </p>
-            <Badge variant="secondary" className="mt-4">Dashboard history · notifications</Badge>
+            <Badge variant="secondary" className="mt-4">{r.modeRegisteredBadge}</Badge>
           </CardContent>
         </Card>
       </button>
@@ -83,6 +81,8 @@ export function StepViolation({
   draft: ReportDraft;
   onChange: (patch: Partial<ReportDraft>) => void;
 }) {
+  const { t } = useLanguage();
+  const r = t.report;
   const selected = categories.find((c) => c.id === draft.categoryId);
   const isSpecial = selected?.is_special ?? false;
 
@@ -120,23 +120,23 @@ export function StepViolation({
           <CardContent className="space-y-4 p-5">
             <div className="flex items-center gap-2">
               <Bus className="h-4 w-4 text-primary" />
-              <p className="text-sm font-semibold">Illegal Bus / Passenger Pickup-Drop Details</p>
+              <p className="text-sm font-semibold">{r.illegalDetailsTitle}</p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="routeName">Bus route (if visible)</Label>
+                <Label htmlFor="routeName">{r.busRouteLabel}</Label>
                 <Input
                   id="routeName"
-                  placeholder="e.g. Gabtoli–Motijheel"
+                  placeholder={r.busRoutePlaceholder}
                   value={draft.routeName}
                   onChange={(e) => onChange({ routeName: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="stoppageDuration">How long did it block traffic?</Label>
+                <Label htmlFor="stoppageDuration">{r.stoppageDurationLabel}</Label>
                 <Input
                   id="stoppageDuration"
-                  placeholder="e.g. ~5 minutes, blocked a full lane"
+                  placeholder={r.stoppageDurationPlaceholder}
                   value={draft.stoppageDuration}
                   onChange={(e) => onChange({ stoppageDuration: e.target.value })}
                 />

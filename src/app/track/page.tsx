@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { trackReport, type TrackResult } from "./actions";
-import { CITIZEN_STAGE_LABEL, CITIZEN_STAGE_ORDER, TERMINAL_STATUSES, toCitizenStage, type ReportStatus } from "@/lib/types";
+import { CITIZEN_STAGE_ORDER, TERMINAL_STATUSES, toCitizenStage, type ReportStatus } from "@/lib/types";
+import { useLanguage } from "@/lib/i18n/language-context";
 import { Loader2, Search, CheckCircle2, Circle, RefreshCw } from "lucide-react";
 
 // Live-tracking poll interval. The lookup RPC is rate-limited to 15 calls per
@@ -19,6 +20,7 @@ import { Loader2, Search, CheckCircle2, Circle, RefreshCw } from "lucide-react";
 const AUTO_REFRESH_MS = 45_000;
 
 function TrackForm() {
+  const { t } = useLanguage();
   const params = useSearchParams();
   const [reportCode, setReportCode] = useState(params.get("code") ?? "");
   const [trackingToken, setTrackingToken] = useState("");
@@ -65,15 +67,13 @@ function TrackForm() {
   return (
     <div className="mx-auto max-w-xl">
       <div className="text-center">
-        <h1 className="font-display text-3xl font-bold tracking-tight">Track Your Report</h1>
-        <p className="mt-2 text-muted-foreground">
-          Enter the report code and tracking token you received at submission.
-        </p>
+        <h1 className="font-display text-3xl font-bold tracking-tight">{t.track.title}</h1>
+        <p className="mt-2 text-muted-foreground">{t.track.subtitle}</p>
       </div>
 
       <form onSubmit={onSubmit} className="mt-8 space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="reportCode">Report code</Label>
+          <Label htmlFor="reportCode">{t.track.reportCodeLabel}</Label>
           <Input
             id="reportCode"
             placeholder="TDB-2026-483920"
@@ -83,10 +83,10 @@ function TrackForm() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="trackingToken">Tracking token</Label>
+          <Label htmlFor="trackingToken">{t.track.trackingTokenLabel}</Label>
           <Input
             id="trackingToken"
-            placeholder="Paste your tracking token"
+            placeholder={t.track.trackingTokenPlaceholder}
             value={trackingToken}
             onChange={(e) => setTrackingToken(e.target.value)}
             required
@@ -94,7 +94,7 @@ function TrackForm() {
         </div>
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-          Track Report
+          {t.track.submit}
         </Button>
       </form>
 
@@ -110,20 +110,20 @@ function TrackForm() {
             <div className="flex items-center justify-between">
               <span className="font-display text-lg font-bold">{report.report_code}</span>
               <Badge variant={isTerminalSideBranch ? "destructive" : "secondary"}>
-                {stage ? CITIZEN_STAGE_LABEL[stage] : report.status}
+                {stage ? t.track.stages[stage] : report.status}
               </Badge>
             </div>
 
             <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
               {isSettled ? (
-                <span>This case is closed — status won't change further.</span>
+                <span>{t.track.closedNote}</span>
               ) : (
                 <span className="flex items-center gap-1.5">
                   <span className="relative flex h-1.5 w-1.5">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/60" />
                     <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
                   </span>
-                  Live — updates automatically
+                  {t.track.liveNote}
                 </span>
               )}
               <button
@@ -133,17 +133,17 @@ function TrackForm() {
                 className="flex items-center gap-1 hover:text-foreground disabled:opacity-50"
               >
                 <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
-                {lastCheckedAt ? `Checked ${lastCheckedAt.toLocaleTimeString()}` : "Refresh"}
+                {lastCheckedAt ? `${t.track.checkedPrefix} ${lastCheckedAt.toLocaleTimeString()}` : t.track.refresh}
               </button>
             </div>
 
             <div className="mt-4 space-y-3 border-t border-border pt-6 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Category</span><span className="font-medium">{report.category_name_en}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{t.track.category}</span><span className="font-medium">{report.category_name_en}</span></div>
               {report.district && (
-                <div className="flex justify-between"><span className="text-muted-foreground">District</span><span className="font-medium">{report.district}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">{t.track.district}</span><span className="font-medium">{report.district}</span></div>
               )}
-              <div className="flex justify-between"><span className="text-muted-foreground">Filed</span><span className="font-medium">{new Date(report.created_at).toLocaleDateString()}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Last updated</span><span className="font-medium">{new Date(report.updated_at).toLocaleDateString()}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{t.track.filed}</span><span className="font-medium">{new Date(report.created_at).toLocaleDateString()}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{t.track.lastUpdated}</span><span className="font-medium">{new Date(report.updated_at).toLocaleDateString()}</span></div>
             </div>
 
             {!isTerminalSideBranch && (
@@ -156,7 +156,7 @@ function TrackForm() {
                       <Circle className="h-5 w-5 text-muted-foreground/40" />
                     )}
                     <span className={i <= currentIndex ? "text-sm font-medium" : "text-sm text-muted-foreground"}>
-                      {CITIZEN_STAGE_LABEL[s]}
+                      {t.track.stages[s]}
                     </span>
                   </div>
                 ))}
@@ -165,7 +165,7 @@ function TrackForm() {
 
             {report.resolution_summary && (
               <div className="mt-6 rounded-lg border border-primary/20 bg-primary/5 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-primary">Action Taken</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary">{t.track.actionTaken}</p>
                 <p className="mt-1 whitespace-pre-wrap text-sm">{report.resolution_summary}</p>
               </div>
             )}

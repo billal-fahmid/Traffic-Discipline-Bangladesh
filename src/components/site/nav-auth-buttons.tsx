@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { useLanguage } from "@/lib/i18n/language-context";
 import { LogOut, User as UserIcon, ChevronDown } from "lucide-react";
 
 type RoleState = "loading" | "anon" | "citizen" | "officer" | "admin" | "super_admin";
@@ -29,6 +30,7 @@ interface ProfileInfo {
 export function NavAuthButtons() {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
+  const { t } = useLanguage();
   const [role, setRole] = useState<RoleState>("loading");
   const [profile, setProfile] = useState<ProfileInfo | null>(null);
 
@@ -74,7 +76,7 @@ export function NavAuthButtons() {
   if (role === "loading") {
     return (
       <Button asChild size="sm">
-        <Link href="/report">Report Now</Link>
+        <Link href="/report">{t.authNav.reportNow}</Link>
       </Button>
     );
   }
@@ -83,10 +85,10 @@ export function NavAuthButtons() {
     return (
       <>
         <Button asChild variant="ghost" size="sm">
-          <Link href="/login">Sign In</Link>
+          <Link href="/login">{t.authNav.signIn}</Link>
         </Button>
         <Button asChild size="sm">
-          <Link href="/report">Report Now</Link>
+          <Link href="/report">{t.authNav.reportNow}</Link>
         </Button>
       </>
     );
@@ -94,10 +96,10 @@ export function NavAuthButtons() {
 
   const staff =
     role === "officer"
-      ? { href: "/officer", label: "Officer Console" }
+      ? { href: "/officer", label: t.authNav.officerConsole }
       : role === "admin" || role === "super_admin"
-        ? { href: "/admin", label: "Admin" }
-        : { href: "/dashboard", label: "Dashboard" };
+        ? { href: "/admin", label: t.authNav.admin }
+        : { href: "/dashboard", label: t.authNav.dashboard };
 
   return (
     <>
@@ -110,6 +112,7 @@ export function NavAuthButtons() {
 }
 
 function ProfileMenu({ profile, onSignOut }: { profile: ProfileInfo | null; onSignOut: () => void }) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -144,7 +147,7 @@ function ProfileMenu({ profile, onSignOut }: { profile: ProfileInfo | null; onSi
           seed={profile?.id ?? "?"}
           className="h-5 w-5 text-[9px]"
         />
-        Profile
+        {t.authNav.profile}
         <ChevronDown className="h-3.5 w-3.5" />
       </Button>
 
@@ -172,7 +175,7 @@ function ProfileMenu({ profile, onSignOut }: { profile: ProfileInfo | null; onSi
             role="menuitem"
             className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-muted"
           >
-            <UserIcon className="h-4 w-4" /> View Profile
+            <UserIcon className="h-4 w-4" /> {t.authNav.viewProfile}
           </Link>
 
           <button
@@ -184,7 +187,7 @@ function ProfileMenu({ profile, onSignOut }: { profile: ProfileInfo | null; onSi
             }}
             className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-destructive hover:bg-destructive/10"
           >
-            <LogOut className="h-4 w-4" /> Sign Out
+            <LogOut className="h-4 w-4" /> {t.authNav.signOut}
           </button>
         </div>
       )}

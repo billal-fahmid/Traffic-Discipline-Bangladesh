@@ -3,6 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { ReportDraft, ViolationCategory } from "@/lib/types";
+import { useLanguage } from "@/lib/i18n/language-context";
 import { EyeOff, UserCheck, MapPin, Camera } from "lucide-react";
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
@@ -22,6 +23,8 @@ export function StepReview({
   draft: ReportDraft;
   category: ViolationCategory | undefined;
 }) {
+  const { t } = useLanguage();
+  const r = t.report.review;
   return (
     <div className="space-y-4">
       <Card>
@@ -29,15 +32,15 @@ export function StepReview({
           <div className="mb-3 flex items-center gap-2">
             {draft.mode === "anonymous" ? <EyeOff className="h-4 w-4 text-primary" /> : <UserCheck className="h-4 w-4 text-primary" />}
             <p className="text-sm font-semibold">
-              {draft.mode === "anonymous" ? "Anonymous report" : "Registered report"}
+              {draft.mode === "anonymous" ? r.anonymousReport : r.registeredReport}
             </p>
           </div>
-          <Row label="Violation" value={category?.name_en} />
-          {draft.isIllegalStoppage && <Row label="Bus route" value={draft.routeName || "—"} />}
-          {draft.isIllegalStoppage && <Row label="Stoppage duration" value={draft.stoppageDuration || "—"} />}
-          <Row label="Vehicle type" value={draft.vehicleType} />
-          <Row label="Registration" value={draft.vehicleRegistration} />
-          <Row label="Color" value={draft.vehicleColor} />
+          <Row label={r.violation} value={category?.name_en} />
+          {draft.isIllegalStoppage && <Row label={r.busRoute} value={draft.routeName || "—"} />}
+          {draft.isIllegalStoppage && <Row label={r.stoppageDuration} value={draft.stoppageDuration || "—"} />}
+          <Row label={r.vehicleType} value={draft.vehicleType} />
+          <Row label={r.registration} value={draft.vehicleRegistration} />
+          <Row label={r.color} value={draft.vehicleColor} />
         </CardContent>
       </Card>
 
@@ -45,12 +48,12 @@ export function StepReview({
         <CardContent className="p-5">
           <div className="mb-3 flex items-center gap-2">
             <MapPin className="h-4 w-4 text-primary" />
-            <p className="text-sm font-semibold">Location</p>
+            <p className="text-sm font-semibold">{r.locationHeading}</p>
           </div>
-          <Row label="Coordinates" value={draft.latitude && draft.longitude ? `${draft.latitude.toFixed(5)}, ${draft.longitude.toFixed(5)}` : "Not set"} />
-          <Row label="Landmark" value={draft.locationLabel} />
-          <Row label="District" value={draft.district} />
-          <Row label="Thana" value={draft.thana} />
+          <Row label={r.coordinates} value={draft.latitude && draft.longitude ? `${draft.latitude.toFixed(5)}, ${draft.longitude.toFixed(5)}` : r.notSet} />
+          <Row label={r.landmark} value={draft.locationLabel} />
+          <Row label={r.district} value={draft.district} />
+          <Row label={r.thana} value={draft.thana} />
         </CardContent>
       </Card>
 
@@ -58,7 +61,7 @@ export function StepReview({
         <CardContent className="p-5">
           <div className="mb-3 flex items-center gap-2">
             <Camera className="h-4 w-4 text-primary" />
-            <p className="text-sm font-semibold">Evidence</p>
+            <p className="text-sm font-semibold">{r.evidenceHeading}</p>
           </div>
           {draft.files.length > 0 ? (
             <div className="flex flex-wrap gap-2">
@@ -67,7 +70,7 @@ export function StepReview({
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No files attached.</p>
+            <p className="text-sm text-muted-foreground">{r.noFiles}</p>
           )}
         </CardContent>
       </Card>
@@ -75,7 +78,7 @@ export function StepReview({
       {draft.description && (
         <Card>
           <CardContent className="p-5">
-            <p className="mb-2 text-sm font-semibold">Description</p>
+            <p className="mb-2 text-sm font-semibold">{r.description}</p>
             <p className="whitespace-pre-wrap text-sm text-muted-foreground">{draft.description}</p>
           </CardContent>
         </Card>

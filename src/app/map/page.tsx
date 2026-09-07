@@ -8,7 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import type { PublicMapPoint, Hotspot, ViolationCategory } from "@/lib/types";
-import { RISK_COLOR, RISK_LABEL } from "@/lib/types";
+import { RISK_COLOR } from "@/lib/types";
+import { useLanguage } from "@/lib/i18n/language-context";
 import { Loader2, MapPin, Flame, ShieldCheck } from "lucide-react";
 
 const PublicMap = dynamic(() => import("@/components/map/public-map"), {
@@ -20,17 +21,18 @@ const PublicMap = dynamic(() => import("@/components/map/public-map"), {
   ),
 });
 
-// Quick-access presets for the three hotspot types the spec calls out
-// by name, on top of the general "all categories" view.
-const QUICK_FILTERS: { label: string; slug: string | null }[] = [
-  { label: "All Violations", slug: null },
-  { label: "Illegal Bus Stopping", slug: "illegal-bus-stoppage" },
-  { label: "Illegal Parking", slug: "illegal-parking" },
-  { label: "Red-Light Violations", slug: "signal-violation" },
-];
-
 export default function TrafficMapPage() {
+  const { t } = useLanguage();
   const supabase = useMemo(() => createClient(), []);
+
+  // Quick-access presets for the three hotspot types the spec calls out
+  // by name, on top of the general "all categories" view.
+  const QUICK_FILTERS: { label: string; slug: string | null }[] = [
+    { label: t.map.quickFilters.all, slug: null },
+    { label: t.map.quickFilters.busStopping, slug: "illegal-bus-stoppage" },
+    { label: t.map.quickFilters.parking, slug: "illegal-parking" },
+    { label: t.map.quickFilters.signal, slug: "signal-violation" },
+  ];
   const [mode, setMode] = useState<"points" | "hotspots">("hotspots");
   const [categorySlug, setCategorySlug] = useState<string | null>(null);
   const [categories, setCategories] = useState<ViolationCategory[]>([]);
@@ -72,20 +74,17 @@ export default function TrafficMapPage() {
       <Navbar />
       <main id="main-content" className="container py-10">
         <div className="mb-6">
-          <h1 className="font-display text-2xl font-bold">Traffic Map</h1>
-          <p className="mt-1 text-muted-foreground">
-            Officer-verified violations only, aggregated to protect precise reporting locations —
-            never raw or unverified citizen submissions.
-          </p>
+          <h1 className="font-display text-2xl font-bold">{t.map.title}</h1>
+          <p className="mt-1 text-muted-foreground">{t.map.subtitle}</p>
         </div>
 
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex gap-1 rounded-lg bg-secondary p-1">
             <Button size="sm" variant={mode === "hotspots" ? "default" : "ghost"} onClick={() => setMode("hotspots")}>
-              <Flame className="h-4 w-4" /> Hotspots
+              <Flame className="h-4 w-4" /> {t.map.hotspots}
             </Button>
             <Button size="sm" variant={mode === "points" ? "default" : "ghost"} onClick={() => setMode("points")}>
-              <MapPin className="h-4 w-4" /> Individual Points
+              <MapPin className="h-4 w-4" /> {t.map.points}
             </Button>
           </div>
 
@@ -105,7 +104,7 @@ export default function TrafficMapPage() {
               onChange={(e) => setCategorySlug(e.target.value || null)}
               className="h-9 rounded-md border border-input bg-background px-2 text-sm shadow-sm"
             >
-              <option value="">More categories…</option>
+              <option value="">{t.map.morePlaceholder}</option>
               {categories.map((c) => (
                 <option key={c.slug} value={c.slug}>{c.name_en}</option>
               ))}
@@ -117,7 +116,7 @@ export default function TrafficMapPage() {
           <CardContent className="relative p-0">
             {loading && (
               <div className="absolute right-3 top-3 z-[1000] flex items-center gap-1.5 rounded-full bg-background/90 px-3 py-1.5 text-xs shadow">
-                <Loader2 className="h-3 w-3 animate-spin" /> Loading
+                <Loader2 className="h-3 w-3 animate-spin" /> {t.map.loading}
               </div>
             )}
             <PublicMap mode={mode} points={points} hotspots={hotspots} className="h-[520px] w-full" />
@@ -127,16 +126,16 @@ export default function TrafficMapPage() {
         <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
           {mode === "hotspots" ? (
             <div className="flex items-center gap-4 text-sm">
-              <span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-primary" /> {hotspots.length} hotspots shown</span>
+              <span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-primary" /> {hotspots.length} {t.map.hotspotsShown}</span>
               {(["high", "medium", "low"] as const).map((r) => (
                 <span key={r} className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: RISK_COLOR[r] }} />
-                  {RISK_LABEL[r]} risk
+                  {t.map.risk[r]} {t.map.riskSuffix}
                 </span>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">{points.length} verified violation points shown (most recent 2,000)</p>
+            <p className="text-sm text-muted-foreground">{points.length} {t.map.pointsShown}</p>
           )}
         </div>
 
@@ -151,11 +150,11 @@ export default function TrafficMapPage() {
                       className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
                       style={{ background: RISK_COLOR[h.risk_level] }}
                     >
-                      {RISK_LABEL[h.risk_level]}
+                      {t.map.risk[h.risk_level]}
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">{h.district}</p>
-                  <p className="mt-3 text-sm">Verified Violations: <strong>{h.total_count}</strong></p>
+                  <p className="mt-3 text-sm">{t.map.verifiedViolations}: <strong>{h.total_count}</strong></p>
                   <ol className="mt-2 space-y-0.5 text-xs text-muted-foreground">
                     {h.top_violations.map((v, idx) => (
                       <li key={idx}>{idx + 1}. {v.name} — {v.count}</li>

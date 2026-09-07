@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useLanguage } from "@/lib/i18n/language-context";
 import { Crosshair, Loader2, MapPin, Search } from "lucide-react";
 
 const LeafletMap = dynamic(() => import("./leaflet-map"), {
@@ -49,6 +50,8 @@ export function LocationPicker({
   onLatLngChange,
   onFieldChange,
 }: LocationPickerProps) {
+  const { t } = useLanguage();
+  const loc = t.report.location;
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
 
@@ -244,11 +247,11 @@ export function LocationPicker({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <Label className="flex items-center gap-1.5">
-          <MapPin className="h-4 w-4" /> Violation location
+          <MapPin className="h-4 w-4" /> {loc.violationLocation}
         </Label>
         <Button type="button" variant="outline" size="sm" onClick={useMyLocation} disabled={locating}>
           {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
-          Use my location
+          {loc.useMyLocation}
         </Button>
       </div>
 
@@ -263,18 +266,18 @@ export function LocationPicker({
       <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
         {reverseBusy && <Loader2 className="h-3 w-3 animate-spin" />}
         {reverseBusy
-          ? "Looking up the address for this pin…"
-          : `Tap or drag the pin to adjust — ${lat.toFixed(5)}, ${lng.toFixed(5)}`}
+          ? loc.lookingUpAddress
+          : `${loc.tapOrDrag} — ${lat.toFixed(5)}, ${lng.toFixed(5)}`}
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div ref={boxRef} className="relative sm:col-span-2 space-y-2">
-          <Label htmlFor="locationLabel">Landmark / address (optional)</Label>
+          <Label htmlFor="locationLabel">{loc.landmarkLabel}</Label>
           <div className="relative">
             <Input
               id="locationLabel"
               autoComplete="off"
-              placeholder="Start typing — e.g. Farmgate overbridge, Dhanmondi 27"
+              placeholder={loc.landmarkPlaceholder}
               value={locationLabel}
               onChange={(e) => onLabelChange(e.target.value)}
               onKeyDown={onLabelKeyDown}

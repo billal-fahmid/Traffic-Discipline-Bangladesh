@@ -14,20 +14,13 @@ import { StepReview } from "./step-review";
 import { ReportSuccess } from "./report-success";
 import { submitReport, attachEvidence } from "@/app/report/actions";
 import { hashFile } from "@/lib/file-hash";
+import { useLanguage } from "@/lib/i18n/language-context";
 import { ArrowLeft, ArrowRight, Loader2, ShieldAlert } from "lucide-react";
-
-const STEP_LABELS = [
-  "Reporting Mode",
-  "Violation",
-  "Evidence",
-  "Location",
-  "Vehicle",
-  "Description",
-  "Review",
-];
 
 export function ReportWizard() {
   const router = useRouter();
+  const { t } = useLanguage();
+  const STEP_LABELS = t.report.stepLabels;
   const supabase = useMemo(() => createClient(), []);
 
   const [step, setStep] = useState(0);
@@ -151,7 +144,7 @@ export function ReportWizard() {
       <div className="mb-8">
         <div className="mb-2 flex items-center justify-between text-sm">
           <span className="font-medium">{STEP_LABELS[step]}</span>
-          <span className="text-muted-foreground">Step {step + 1} of {STEP_LABELS.length}</span>
+          <span className="text-muted-foreground">{t.report.stepOf.replace("{n}", String(step + 1)).replace("{total}", String(STEP_LABELS.length))}</span>
         </div>
         <Progress value={progressPct} />
       </div>
@@ -162,7 +155,7 @@ export function ReportWizard() {
         )}
         {step === 0 && draft.mode === "registered" && !isAuthenticated && (
           <p className="mt-4 flex items-center gap-2 text-sm text-destructive">
-            <ShieldAlert className="h-4 w-4" /> You'll need to sign in before continuing with a registered report.
+            <ShieldAlert className="h-4 w-4" /> {t.report.needSignInWarning}
           </p>
         )}
         {step === 1 && (
@@ -173,12 +166,11 @@ export function ReportWizard() {
               </p>
             ) : categoriesLoading ? (
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading categories…
+                <Loader2 className="h-4 w-4 animate-spin" /> {t.report.categoriesLoading}
               </p>
             ) : categories.length === 0 ? (
               <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-                No violation categories are configured yet. Run <code>supabase/seed.sql</code> (or add
-                categories in the admin console) to populate this step.
+                {t.report.categoriesEmpty}
               </p>
             ) : (
               <StepViolation categories={categories} draft={draft} onChange={patch} />
@@ -212,17 +204,17 @@ export function ReportWizard() {
           onClick={() => (step === 0 ? router.push("/") : setStep((s) => s - 1))}
           disabled={submitting}
         >
-          <ArrowLeft className="h-4 w-4" /> {step === 0 ? "Cancel" : "Back"}
+          <ArrowLeft className="h-4 w-4" /> {step === 0 ? t.report.cancel : t.report.back}
         </Button>
 
         {isLastStep ? (
           <Button onClick={handleSubmit} disabled={submitting}>
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Submit Report
+            {t.report.submit}
           </Button>
         ) : (
           <Button onClick={() => setStep((s) => s + 1)} disabled={!canAdvance()}>
-            Continue <ArrowRight className="h-4 w-4" />
+            {t.report.continueBtn} <ArrowRight className="h-4 w-4" />
           </Button>
         )}
       </div>

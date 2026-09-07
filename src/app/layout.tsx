@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Hanken_Grotesk, Noto_Sans_Bengali } from "next/font/google";
+import { LanguageProvider } from "@/lib/i18n/language-context";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -20,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${hanken.variable} ${notoBengali.variable} font-sans`}>
-        {children}
+        <LanguageProvider>{children}</LanguageProvider>
       </body>
     </html>
   );

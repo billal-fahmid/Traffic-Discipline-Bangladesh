@@ -1,25 +1,22 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import type { EducationTopic } from "@/lib/education-content";
+import { useLanguage } from "@/lib/i18n/language-context";
+import { LanguageToggle } from "@/components/site/language-toggle";
 import { ArrowLeft, Languages, CheckCircle2 } from "lucide-react";
 
 export function EducationTopicView({ topic }: { topic: EducationTopic }) {
-  const [lang, setLang] = useState<"en" | "bn">("en");
+  const { lang, t } = useLanguage();
 
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6 flex items-center justify-between">
         <Link href="/education" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" /> All Topics
+          <ArrowLeft className="h-4 w-4" /> {t.education.allTopics}
         </Link>
-        <div className="flex items-center gap-1 rounded-lg bg-secondary p-1">
-          <Button size="sm" variant={lang === "en" ? "default" : "ghost"} onClick={() => setLang("en")}>English</Button>
-          <Button size="sm" variant={lang === "bn" ? "default" : "ghost"} onClick={() => setLang("bn")} className={lang === "bn" ? "font-bangla" : ""}>বাংলা</Button>
-        </div>
+        <LanguageToggle />
       </div>
 
       <div className="mb-8">

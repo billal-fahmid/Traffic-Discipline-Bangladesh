@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { UploadCloud, X, FileVideo, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 const MAX_FILES = 5;
 const MAX_SIZE_MB = 50;
@@ -16,6 +17,7 @@ export function StepUpload({
   files: File[];
   onChange: (files: File[]) => void;
 }) {
+  const { t } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,9 +64,9 @@ export function StepUpload({
         )}
       >
         <UploadCloud className="h-8 w-8 text-primary" />
-        <p className="mt-3 text-sm font-medium">Drag & drop photo or video evidence, or click to browse</p>
+        <p className="mt-3 text-sm font-medium">{t.report.uploadDragText}</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          JPG, PNG, WEBP, MP4, MOV, WEBM — up to {MAX_SIZE_MB}MB each, {MAX_FILES} files max
+          JPG, PNG, WEBP, MP4, MOV, WEBM — {t.report.uploadHint.replace("{size}", String(MAX_SIZE_MB)).replace("{count}", String(MAX_FILES))}
         </p>
         <input
           ref={inputRef}
@@ -105,7 +107,7 @@ export function StepUpload({
       )}
 
       <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <ImageIcon className="h-3.5 w-3.5" /> Evidence is optional but significantly speeds up review.
+        <ImageIcon className="h-3.5 w-3.5" /> {t.report.uploadNote}
       </p>
     </div>
   );
